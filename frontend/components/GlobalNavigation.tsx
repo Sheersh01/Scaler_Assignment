@@ -2,9 +2,14 @@
 
 import { MessageCircle, Phone, Settings, User, CircleDot } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { useToast } from '@/components/Toast';
+import { useState } from 'react';
+import SettingsModal from './SettingsModal';
 
 export default function GlobalNavigation() {
   const { user } = useAuthStore();
+  const { showToast } = useToast();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <div className="flex h-full w-[64px] flex-col items-center justify-between py-4 bg-[var(--bg-sidebar)] shrink-0 relative z-20 border-r border-[var(--border-light)]">
@@ -28,22 +33,24 @@ export default function GlobalNavigation() {
         </button>
 
         {/* Calls */}
-        <button className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+        <button onClick={() => showToast("Voice calling is coming soon")} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
           <Phone className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
 
         {/* Stories */}
-        <button className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+        <button onClick={() => showToast("Stories are coming soon")} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
           <CircleDot className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
       </div>
 
       {/* Bottom Icons */}
       <div className="flex flex-col items-center space-y-2 w-full">
-        <button className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+        <button onClick={() => setIsSettingsOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
           <Settings className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
       </div>
+
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }

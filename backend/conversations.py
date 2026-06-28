@@ -121,3 +121,31 @@ def add_group_member(conversation_id: int, username: str, db: Session = Depends(
     db.refresh(new_member)
     
     return new_member
+
+@router.delete("/{conversation_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_group_member(conversation_id: int, user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    conv = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    if conv.type != models.ConversationType.GROUP:
+        raise HTTPException(status_code=400, detail="Can only remove members from a group")
+
+    # Check if requester is admin or if they are removing themselves
+    admin_member = next((m for m in conv.members if m.user_id == current_user.id and m.role == models.UserRole.ADMIN), None)
+    if not admin_member and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Only admins can remove other members")
+
+    member_to_remove = next((m for m in conv.members if m.user_id == user_id), None)
+    if not member_to_remove:
+        raise HTTPException(status_code=404, detail="User is not a member of this group")
+
+    # Ensure we don't remove the last admin if there are other members
+    if member_to_remove.role == models.UserRole.ADMIN:
+        other_admins = [m for m in conv.members if m.role == models.UserRole.ADMIN and m.user_id != user_id]
+        if not other_admins and len(conv.members) > 1:
+            raise HTTPException(status_code=400, detail="Cannot remove the last admin. Promote someone else first.")
+
+    db.delete(member_to_remove)
+    db.commit()
+    return None

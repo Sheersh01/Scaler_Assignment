@@ -5,6 +5,8 @@ import { useAuthStore, useSocketStore } from '@/lib/store';
 import api from '@/lib/api';
 import { Send, MoreVertical, Phone, Video, Plus, Check, CheckCheck, UserPlus, Users, Smile, Mic, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import GroupSettingsModal from './GroupSettingsModal';
+import { useToast } from '@/components/Toast';
 
 interface ChatWindowProps {
   conversationId: number;
@@ -17,6 +19,8 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuthStore();
   const { ws } = useSocketStore();
+  const { showToast } = useToast();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,7 +49,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
         typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
       } else if (data.event === 'MESSAGE_READ' && data.conversation_id === conversationId) {
         setMessages((prev) => prev.map(m => m.id === data.message_id ? { ...m, status: 'READ' } : m));
-      } else if (data.event === 'MEMBER_ADDED' && data.conversation_id === conversationId) {
+      } else if ((data.event === 'MEMBER_ADDED' || data.event === 'MEMBER_REMOVED') && data.conversation_id === conversationId) {
         fetchConversationDetails();
       }
     };
@@ -125,27 +129,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
     }
   };
 
-  const handleAddMember = async () => {
-    const username = prompt("Enter username to add to group:");
-    if (!username) return;
-    try {
-      const res = await api.post(`/conversations/${conversationId}/members`, null, { params: { username } });
-      alert("Member added!");
-      fetchConversationDetails();
-      
-      if (ws && ws.readyState === WebSocket.OPEN) {
-         // Notify all members (including new one) to refresh
-         const updatedMembers = res.data.members.map((m:any) => m.user_id);
-         ws.send(JSON.stringify({
-            event: 'MEMBER_ADDED',
-            conversation_id: conversationId,
-            receiver_ids: updatedMembers
-         }));
-      }
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to add member');
-    }
-  };
+
 
   const isGroup = conversation?.type === 'GROUP';
   const title = isGroup ? conversation?.group_info?.name : (conversation?.members.find((m: any) => m.user_id !== user?.id)?.user.display_name || `Chat ${conversationId}`);
@@ -154,8 +138,10 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex flex-1 flex-col bg-[var(--background)] relative min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-[60px] border-b border-[var(--border-light)] shrink-0 z-10 bg-[var(--background)]/90 backdrop-blur-sm">
-        <div className="flex items-center space-x-3 cursor-pointer">
+      <div 
+         className={`flex items-center justify-between px-4 h-[60px] border-b border-[var(--border-light)] shrink-0 z-10 bg-[var(--background)]/90 backdrop-blur-sm`}
+      >
+        <div className="flex items-center space-x-3">
           <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isGroup ? 'bg-[#90B3F9]' : 'bg-[#E5BEC3]'} text-white shrink-0`}>
              {isGroup ? <Users className="h-6 w-6" strokeWidth={1.5} /> : <UserPlus className="h-6 w-6" strokeWidth={1.5} />}
           </div>
@@ -165,18 +151,17 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
           </div>
         </div>
         <div className="flex space-x-2 text-[var(--text-muted)]">
-          {isGroup && (
-             <button onClick={handleAddMember} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors" title="Add Member">
-               <UserPlus className="h-[20px] w-[20px]" strokeWidth={2} />
-             </button>
-          )}
-          <button className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors">
+
+          <button onClick={() => showToast("Video calling is coming soon")} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors">
             <Video className="h-[20px] w-[20px]" strokeWidth={2} />
           </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors">
+          <button onClick={() => showToast("Voice calling is coming soon")} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors">
             <Phone className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors">
+          <button 
+             onClick={() => { if (isGroup) setIsSettingsOpen(true); }}
+             className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] transition-colors"
+          >
             <MoreVertical className="h-[20px] w-[20px]" strokeWidth={2} />
           </button>
         </div>
@@ -260,10 +245,10 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
               </button>
             ) : (
               <>
-                <button type="button" className="flex h-[36px] w-[36px] items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+                <button type="button" onClick={() => showToast("Voice messages are coming soon")} className="flex h-[36px] w-[36px] items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
                   <Mic className="h-[20px] w-[20px]" strokeWidth={2} />
                 </button>
-                <button type="button" className="flex h-[36px] w-[36px] items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+                <button type="button" onClick={() => showToast("Media attachments are coming soon")} className="flex h-[36px] w-[36px] items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
                   <Plus className="h-[22px] w-[22px]" strokeWidth={2} />
                 </button>
               </>
@@ -271,6 +256,23 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
           </div>
         </form>
       </div>
+
+      {/* Modals */}
+      <GroupSettingsModal 
+         isOpen={isSettingsOpen} 
+         onClose={() => setIsSettingsOpen(false)} 
+         conversation={conversation}
+         onUpdate={() => {
+            fetchConversationDetails();
+            if (ws && ws.readyState === WebSocket.OPEN && conversation?.members) {
+               ws.send(JSON.stringify({
+                  event: 'MEMBER_REMOVED',
+                  conversation_id: conversationId,
+                  receiver_ids: conversation.members.map((m:any) => m.user_id)
+               }));
+            }
+         }}
+      />
     </div>
   );
 }
