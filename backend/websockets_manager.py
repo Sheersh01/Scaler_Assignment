@@ -1,6 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from typing import Dict, List
 import json
+from database import SessionLocal
+import models
 
 router = APIRouter(tags=["websockets"])
 
@@ -50,6 +52,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
             receiver_ids = message.get("receiver_ids", [])
             for rid in receiver_ids:
                 await manager.send_personal_message(message, rid)
+                
+            if message.get("event") == "MESSAGE_READ":
+                message_id = message.get("message_id")
+                if message_id:
+                    db = SessionLocal()
+                    try:
+                        msg_record = db.query(models.Message).filter(models.Message.id == message_id).first()
+                        if msg_record and msg_record.status != models.MessageStatus.READ:
+                            msg_record.status = models.MessageStatus.READ
+                            db.commit()
+                    finally:
+                        db.close()
             
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)

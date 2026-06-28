@@ -19,6 +19,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
   const [isUnreadFilterActive, setIsUnreadFilterActive] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [activeSidebarView, setActiveSidebarView] = useState<'chats' | 'new_chat' | 'phone_search' | 'username_search' | 'choose_members'>('chats');
+  const [memberSearch, setMemberSearch] = useState('');
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     if (!ws) return;
     const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
-      if (data.event === 'NEW_MESSAGE' || data.event === 'MEMBER_ADDED' || data.event === 'CONVERSATION_CREATED') {
+      if (data.event === 'NEW_MESSAGE' || data.event === 'MEMBER_ADDED' || data.event === 'CONVERSATION_CREATED' || data.event === 'MESSAGE_READ') {
          fetchConversations();
       }
     };
@@ -94,11 +95,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     let result = conversations;
 
     if (isUnreadFilterActive) {
-      result = result.filter(conv => {
-        const lastMsg = conv.last_message;
-        // Check if last message is from someone else and not marked READ
-        return lastMsg && lastMsg.sender_id !== user?.id && lastMsg.status !== 'READ';
-      });
+      result = result.filter(conv => conv.unread_count > 0);
     }
 
     if (search.trim()) {
@@ -114,11 +111,33 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     return result;
   }, [conversations, search, user, isUnreadFilterActive]);
 
+  const recentContacts = useMemo(() => {
+    const contacts = new Map();
+    conversations.forEach(conv => {
+       if (conv.type === 'DIRECT') {
+          const otherMember = conv.members.find((m: any) => m.user_id !== user?.id)?.user;
+          if (otherMember) {
+             contacts.set(otherMember.username, otherMember);
+          }
+       }
+    });
+    return Array.from(contacts.values());
+  }, [conversations, user]);
+
+  const filteredMemberContacts = useMemo(() => {
+    if (!memberSearch.trim()) return recentContacts;
+    const lower = memberSearch.toLowerCase();
+    return recentContacts.filter(c => 
+      c.display_name.toLowerCase().includes(lower) || 
+      c.username.toLowerCase().includes(lower)
+    );
+  }, [recentContacts, memberSearch]);
+
   if (activeSidebarView === 'phone_search') {
     return (
       <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
-          <button onClick={() => setActiveSidebarView('new_chat')} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
+          <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
           </button>
           <h1 className="text-[17px] font-semibold text-[var(--foreground)] tracking-tight">Find by phone number</h1>
@@ -145,25 +164,48 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     return (
       <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
-          <button onClick={() => setActiveSidebarView('new_chat')} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
+          <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
           </button>
           <h1 className="text-[17px] font-semibold text-[var(--foreground)] tracking-tight">Choose members</h1>
         </div>
 
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 border-b border-[var(--border-light)]">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-[18px] w-[18px] text-[var(--text-muted)]" strokeWidth={2} />
             <input
               type="text"
               placeholder="Name, username, or number"
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
               className="w-full h-9 rounded-[8px] bg-[var(--bg-input)] py-2 pl-9 pr-4 text-[14px] focus:outline-none focus:ring-1 focus:ring-[var(--border-light)] placeholder-[var(--text-muted)] text-[var(--foreground)]"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pt-10 flex justify-center">
-          <span className="text-[15px] font-semibold text-[var(--foreground)] opacity-90">No contacts found</span>
+        <div className="flex-1 overflow-y-auto">
+          {filteredMemberContacts.length > 0 ? (
+            <div className="py-2">
+              <div className="px-4 py-2">
+                <span className="text-[13px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Recents</span>
+              </div>
+              {filteredMemberContacts.map(contact => (
+                <div key={contact.username} onClick={() => { setActiveSidebarView('chats'); handleCreateGroup(); }} className="flex cursor-pointer items-center space-x-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--border-light)] text-[var(--foreground)] overflow-hidden">
+                    {contact.avatar ? <img src={contact.avatar} className="h-full w-full object-cover" /> : <User className="h-5 w-5" strokeWidth={1.5} />}
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-medium text-[var(--foreground)]">{contact.display_name}</h3>
+                    <p className="text-[13px] text-[var(--text-muted)]">@{contact.username}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="pt-10 flex justify-center">
+              <span className="text-[15px] font-semibold text-[var(--foreground)] opacity-90">No contacts found</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -173,22 +215,27 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     return (
       <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
-          <button onClick={() => setActiveSidebarView('new_chat')} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
+          <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
           </button>
           <h1 className="text-[17px] font-semibold text-[var(--foreground)] tracking-tight">Find by username</h1>
         </div>
 
-        <div className="px-4 pt-2">
+        <div className="px-4 pt-2 pb-4 border-b border-[var(--border-light)]">
           <div className="flex items-center rounded-[8px] bg-[var(--bg-input)] px-4 py-2.5">
              <input 
                type="text" 
                placeholder="Username" 
+               value={memberSearch}
+               onChange={(e) => setMemberSearch(e.target.value)}
                className="bg-transparent w-full focus:outline-none text-[14px] placeholder-[var(--text-muted)] text-[var(--foreground)] font-medium" 
                onKeyDown={(e) => {
                  if (e.key === 'Enter') {
                    const val = e.currentTarget.value.trim();
-                   if (val) handleCreateChat(val);
+                   if (val) {
+                     handleCreateChat(val);
+                     setMemberSearch('');
+                   }
                  }
                }}
              />
@@ -196,6 +243,27 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
           <p className="mt-3 text-[13px] text-[var(--foreground)] font-semibold opacity-90 leading-relaxed">
             Enter a username followed by a dot and its set of numbers.
           </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {filteredMemberContacts.length > 0 && (
+            <div className="py-2">
+              <div className="px-4 py-2">
+                <span className="text-[13px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Recommended</span>
+              </div>
+              {filteredMemberContacts.map(contact => (
+                <div key={contact.username} onClick={() => { setActiveSidebarView('chats'); handleCreateChat(contact.username); setMemberSearch(''); }} className="flex cursor-pointer items-center space-x-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--border-light)] text-[var(--foreground)] overflow-hidden">
+                    {contact.avatar ? <img src={contact.avatar} className="h-full w-full object-cover" /> : <User className="h-5 w-5" strokeWidth={1.5} />}
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-medium text-[var(--foreground)]">{contact.display_name}</h3>
+                    <p className="text-[13px] text-[var(--text-muted)]">@{contact.username}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -206,7 +274,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
       <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
         {/* Header */}
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
-          <button onClick={() => setActiveSidebarView('chats')} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
+          <button onClick={() => { setActiveSidebarView('chats'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
           </button>
           <h1 className="text-[17px] font-semibold text-[var(--foreground)] tracking-tight">New chat</h1>
@@ -362,7 +430,10 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
           return (
             <div
               key={conv.id}
-              onClick={() => setActiveConversation(conv.id)}
+              onClick={() => {
+                 setActiveConversation(conv.id);
+                 setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c));
+              }}
               className={`flex cursor-pointer items-center space-x-3 px-3 py-2.5 rounded-[12px] mb-0.5 transition-colors ${activeConversation === conv.id ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'}`}
             >
               <div className={`flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full ${isGroup ? 'bg-[#90B3F9]' : 'bg-[#E5BEC3]'} text-white`}>
@@ -375,6 +446,11 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
                 </div>
                 <div className="flex justify-between items-center">
                   <p className="truncate text-[14px] text-[var(--text-muted)]">{msgPreview}</p>
+                  {conv.unread_count > 0 && activeConversation !== conv.id && (
+                    <span className="ml-2 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[var(--signal-blue)] px-[6px] text-[11px] font-bold text-white shadow-sm">
+                      {conv.unread_count}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

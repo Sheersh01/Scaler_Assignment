@@ -20,6 +20,15 @@ def get_messages(conversation_id: int, db: Session = Depends(database.get_db), c
         models.Message.conversation_id == conversation_id
     ).order_by(models.Message.created_at.asc()).all()
     
+    updated = False
+    for msg in messages:
+        if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
+            msg.status = models.MessageStatus.READ
+            updated = True
+            
+    if updated:
+        db.commit()
+
     return messages
 
 @router.post("/", response_model=schemas.Message)

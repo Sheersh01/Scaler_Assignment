@@ -77,6 +77,7 @@ class Conversation(ConversationBase):
     members: List[ConversationMember] = []
     group_info: Optional[GroupInfo] = None
     last_message: Optional['Message'] = None
+    unread_count: int = 0
 
     class Config:
         from_attributes = True
@@ -97,6 +98,7 @@ class Message(MessageBase):
     reply_to: Optional[int]
     created_at: datetime
     deleted_at: Optional[datetime]
+    sender: Optional[User] = None
 
     class Config:
         from_attributes = True

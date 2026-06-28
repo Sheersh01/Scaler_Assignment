@@ -18,6 +18,13 @@ def get_conversations(db: Session = Depends(database.get_db), current_user: mode
         models.Conversation.id.in_(user_convs)
     ).order_by(models.Conversation.updated_at.desc()).all()
     
+    for conv in conversations:
+        unread_count = 0
+        for msg in conv.messages:
+            if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
+                unread_count += 1
+        conv.unread_count = unread_count
+
     return conversations
 
 @router.post("/", response_model=schemas.Conversation)
@@ -92,6 +99,12 @@ def get_conversation(conversation_id: int, db: Session = Depends(database.get_db
     if not is_member:
         raise HTTPException(status_code=403, detail="Not a member of this conversation")
         
+    unread_count = 0
+    for msg in conv.messages:
+        if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
+            unread_count += 1
+    conv.unread_count = unread_count
+
     return conv
 
 @router.post("/{conversation_id}/members", response_model=schemas.ConversationMember)

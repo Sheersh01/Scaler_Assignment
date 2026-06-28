@@ -34,14 +34,16 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
     const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
       if (data.event === 'NEW_MESSAGE' && data.message.conversation_id === conversationId) {
-        setMessages((prev) => [...prev, data.message]);
-        if (ws) {
-           ws.send(JSON.stringify({ 
-               event: 'MESSAGE_READ', 
-               message_id: data.message.id,
-               conversation_id: conversationId,
-               receiver_ids: [data.message.sender_id]
-           }));
+        if (data.message.sender_id !== user?.id) {
+          setMessages((prev) => [...prev, data.message]);
+          if (ws) {
+             ws.send(JSON.stringify({ 
+                 event: 'MESSAGE_READ', 
+                 message_id: data.message.id,
+                 conversation_id: conversationId,
+                 receiver_ids: getReceiverIds()
+             }));
+          }
         }
       } else if (data.event === 'TYPING' && data.conversation_id === conversationId && data.user_id !== user?.id) {
         setIsTyping(true);
@@ -77,7 +79,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
   const getReceiverIds = () => {
     if (!conversation?.members) return [];
-    return conversation.members.filter((m: any) => m.user_id !== user?.id).map((m: any) => m.user_id);
+    return conversation.members.map((m: any) => m.user_id);
   };
 
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
