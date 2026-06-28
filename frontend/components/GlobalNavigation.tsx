@@ -6,9 +6,13 @@ import { useToast } from '@/components/Toast';
 import { useState } from 'react';
 import SettingsModal from './SettingsModal';
 
-export default function GlobalNavigation() {
+interface GlobalNavigationProps {
+  activeView: 'chats' | 'calls' | 'stories';
+  setActiveView: (view: 'chats' | 'calls' | 'stories') => void;
+}
+
+export default function GlobalNavigation({ activeView, setActiveView }: GlobalNavigationProps) {
   const { user } = useAuthStore();
-  const { showToast } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
@@ -28,17 +32,32 @@ export default function GlobalNavigation() {
         </button>
 
         {/* Chats (Active) */}
-        <button className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors group">
+        <button 
+          onClick={() => setActiveView('chats')}
+          className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+            activeView === 'chats' ? 'bg-[var(--bg-hover)] text-[var(--foreground)]' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
+          }`}
+        >
           <MessageCircle className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
 
         {/* Calls */}
-        <button onClick={() => showToast("Voice calling is coming soon")} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+        <button 
+          onClick={() => setActiveView('calls')}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+            activeView === 'calls' ? 'bg-[var(--bg-hover)] text-[var(--foreground)]' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
+          }`}
+        >
           <Phone className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
 
         {/* Stories */}
-        <button onClick={() => showToast("Stories are coming soon")} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+        <button 
+          onClick={() => setActiveView('stories')}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+            activeView === 'stories' ? 'bg-[var(--bg-hover)] text-[var(--foreground)]' : 'hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--foreground)]'
+          }`}
+        >
           <CircleDot className="h-[22px] w-[22px]" strokeWidth={2} />
         </button>
       </div>
