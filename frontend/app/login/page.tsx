@@ -39,7 +39,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-zinc-900">
+    <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-zinc-900 px-4 sm:px-0">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-zinc-800">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-blue-600">Signal Clone</h1>

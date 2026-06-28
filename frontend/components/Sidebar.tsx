@@ -42,13 +42,19 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
   useEffect(() => {
     if (activeSidebarView === 'username_search' || activeSidebarView === 'choose_members') {
       if (memberSearch.trim().length > 0) {
+        let isActive = true;
         const timer = setTimeout(async () => {
           try {
-            const res = await api.get(`/contacts/search?q=${memberSearch}`);
-            setGlobalSearchRes(res.data);
+            const res = await api.get(`/contacts/search?q=${encodeURIComponent(memberSearch)}`);
+            if (isActive) {
+              setGlobalSearchRes(res.data);
+            }
           } catch(e) {}
         }, 300);
-        return () => clearTimeout(timer);
+        return () => {
+          isActive = false;
+          clearTimeout(timer);
+        };
       } else {
         setGlobalSearchRes([]);
       }
@@ -143,12 +149,22 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
 
   const filteredMemberContacts = useMemo(() => {
     if (!memberSearch.trim()) return recentContacts;
-    if (globalSearchRes.length > 0) return globalSearchRes;
     
     const lower = memberSearch.toLowerCase();
-    return recentContacts.filter(c => 
-      c.display_name.toLowerCase().includes(lower) || 
-      c.username.toLowerCase().includes(lower)
+    
+    // Combine recentContacts and globalSearchRes
+    const combined = [...recentContacts, ...globalSearchRes];
+    
+    // Deduplicate by username
+    const uniqueMap = new Map();
+    combined.forEach(c => uniqueMap.set(c.username, c));
+    
+    const uniqueContacts = Array.from(uniqueMap.values());
+    
+    // Filter the combined list locally so the UI updates instantly while API is fetching
+    return uniqueContacts.filter(c => 
+      (c.display_name && c.display_name.toLowerCase().includes(lower)) || 
+      (c.username && c.username.toLowerCase().includes(lower))
     );
   }, [recentContacts, memberSearch, globalSearchRes]);
 

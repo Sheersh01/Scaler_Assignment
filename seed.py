@@ -16,12 +16,25 @@ def seed_db():
         print("Database already seeded")
         return
 
-    users = [
-        {"username": "alice", "phone": "+1234567890", "display_name": "Alice", "password": "password"},
-        {"username": "bob", "phone": "+1987654321", "display_name": "Bob", "password": "password"},
-        {"username": "charlie", "phone": "+1122334455", "display_name": "Charlie", "password": "password"},
-        {"username": "diana", "phone": "+1555666777", "display_name": "Diana", "password": "password"}
+    import random
+    first_names = [
+        "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", 
+        "Linda", "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", 
+        "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen", "Christopher", 
+        "Lisa", "Daniel", "Nancy", "Matthew", "Betty", "Anthony", "Margaret", 
+        "Mark", "Sandra", "Donald", "Ashley", "Steven", "Kimberly", "Paul", 
+        "Emily", "Andrew", "Donna", "Joshua", "Michelle", "Kenneth", "Carol", 
+        "Kevin", "Amanda", "Brian", "Dorothy", "George", "Melissa", "Timothy", "Deborah"
     ]
+    
+    users = []
+    for i, name in enumerate(first_names):
+        users.append({
+            "username": f"{name.lower()}{i}",
+            "phone": f"+1{random.randint(100000000, 999999999)}",
+            "display_name": name,
+            "password": "password"
+        })
     
     db_users = []
     for u in users:

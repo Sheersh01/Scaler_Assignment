@@ -22,6 +22,25 @@ def seed():
             {"username": "dave", "phone": "4444444444", "display_name": "Dave Williams", "is_online": False},
             {"username": "eve", "phone": "5555555555", "display_name": "Eve Davis", "is_online": True},
         ]
+
+        import random
+        first_names = [
+            "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", 
+            "Linda", "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", 
+            "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen", "Christopher", 
+            "Lisa", "Daniel", "Nancy", "Matthew", "Betty", "Anthony", "Margaret", 
+            "Mark", "Sandra", "Donald", "Ashley", "Steven", "Kimberly", "Paul", 
+            "Emily", "Andrew", "Donna", "Joshua", "Michelle", "Kenneth", "Carol", 
+            "Kevin", "Amanda", "Brian", "Dorothy", "George", "Melissa", "Timothy", "Deborah"
+        ]
+        
+        for i, name in enumerate(first_names):
+            users_data.append({
+                "username": f"{name.lower()}{i}",
+                "phone": f"+1{random.randint(100000000, 999999999)}",
+                "display_name": name,
+                "is_online": random.choice([True, False])
+            })
         
         users = {}
         for u in users_data:
