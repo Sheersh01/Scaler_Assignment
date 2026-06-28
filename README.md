@@ -17,7 +17,7 @@ A fully functional clone of the Signal messaging application focusing on modern 
 - **Mobile View**: Intelligently switches to a single-pane view. The global navigation shifts to a bottom tab bar, and opening a chat expands it to full screen with a native-style "Back" button to return to the chat list.
 
 ### 3. 💬 Real-time Messaging & Rich Media
-- Instant message delivery powered by **WebSockets**.
+- **Instant Delivery & Auto-Reconnect**: Instant message delivery powered by **WebSockets**. The global socket manager features robust exponential auto-reconnect logic to guarantee no events are missed if the browser throttles background tabs or a network drop occurs.
 - **Emoji Picker Integration**: Native-style emoji keyboard that doesn't load images over network for maximum performance.
 - **Live Read Receipts**: Messages instantly show read indicators (double checks) the moment the recipient views the chat.
 - **Live Unread Badges**: The sidebar actively displays and updates unread message counts in real-time without requiring a page refresh.
@@ -28,8 +28,9 @@ A fully functional clone of the Signal messaging application focusing on modern 
 - **Dark Mode**: Fully implemented dynamic Dark Mode support powered by native CSS variables.
 - The theme settings persist locally and instantly invert the app's entire UI for nighttime viewing.
 
-### 5. 👥 Contact & Group Management
-- **Global Search**: Find any registered user seamlessly via a unified search bar.
+### 5. 👥 Contact & Chat Management
+- **Global Search & Zero-Clutter**: Find any registered user seamlessly via a unified search bar. Newly created chats remain completely hidden from your sidebar until an actual message is sent, ensuring your chat list stays immaculately clean.
+- **Robust Soft-Delete**: A professional-grade "Delete Chat" feature safely hides your copy of the conversation history while keeping the connection intact. If the person messages you again, the chat reappears seamlessly with a fresh slate.
 - **Group Chats**: Create and manage groups with multiple participants.
 
 ### 6. ⚡ Heavy Optimizations for Production
