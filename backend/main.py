@@ -13,6 +13,21 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Signal Clone API")
 
+@app.on_event("startup")
+def startup_event():
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user_count = db.query(models.User).count()
+        if user_count == 0:
+            print("Empty database detected. Running automatic seed...")
+            from seed import seed
+            seed()
+    except Exception as e:
+        print(f"Error checking database for seed: {e}")
+    finally:
+        db.close()
+
 import os
 
 # Parse comma-separated CORS_ORIGINS from environment, fallback to localhost
