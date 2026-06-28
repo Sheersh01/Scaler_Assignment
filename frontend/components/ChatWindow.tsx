@@ -7,7 +7,7 @@ import { Send, MoreVertical, Phone, Video, Plus, Check, CheckCheck, UserPlus, Us
 import { motion, AnimatePresence } from 'framer-motion';
 import GroupSettingsModal from './GroupSettingsModal';
 import { useToast } from '@/components/Toast';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
 interface ChatWindowProps {
   conversationId: number;
@@ -143,7 +143,7 @@ export default function ChatWindow({ conversationId, setActiveConversation }: Ch
   const memberCount = isGroup ? `${conversation?.members.length} members` : (otherMember?.is_online ? 'Online' : 'Offline');
 
   const memoizedEmojiPicker = useMemo(() => {
-    return <EmojiPicker emojiStyle="native" onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />;
+    return <EmojiPicker emojiStyle={EmojiStyle.NATIVE} onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />;
   }, []);
 
   return (

@@ -104,7 +104,15 @@ Start the backend server:
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### 2. Frontend Setup
+### 2. Seed the Database (Highly Recommended)
+To instantly populate the app with fake users, contacts, and group chats so you can test it immediately:
+```bash
+# While still in the backend directory
+python seed.py
+```
+*Note: You can then log into the frontend using the username `alice` and password `password123` to see a fully populated chat interface!*
+
+### 3. Frontend Setup
 Open a new terminal and navigate to the frontend directory:
 ```bash
 cd frontend
