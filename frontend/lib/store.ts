@@ -1,0 +1,54 @@
+import { create } from 'zustand';
+
+interface User {
+  id: number;
+  username: string;
+  phone: string;
+  display_name: string;
+  avatar?: string;
+  is_online: boolean;
+}
+
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  setAuth: (user: User, token: string) => void;
+  logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+  setAuth: (user, token) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
+    }
+    set({ user, token });
+  },
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
+    set({ user: null, token: null });
+  },
+}));
+
+interface SocketState {
+  ws: WebSocket | null;
+  connect: (userId: number) => void;
+  disconnect: () => void;
+}
+
+export const useSocketStore = create<SocketState>((set, get) => ({
+  ws: null,
+  connect: (userId) => {
+    if (get().ws) return;
+    const socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+    socket.onopen = () => console.log('Global WS connected');
+    set({ ws: socket });
+  },
+  disconnect: () => {
+    get().ws?.close();
+    set({ ws: null });
+  }
+}));
