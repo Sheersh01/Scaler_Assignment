@@ -1,0 +1,31 @@
+Assignment.md
+image.png
+PRD.md
+image copy.png
+
+# Node modules
+node_modules/
+.next/
+out/
+build/
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+.env/
+
+# Database
+*.db
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
