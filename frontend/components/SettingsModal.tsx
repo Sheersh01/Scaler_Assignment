@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Lock, Bell, Palette, Smartphone, LogOut, Info, Settings as SettingsIcon, MessageCircle, Phone, PieChart, History, Heart, Pen, AtSign } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { X, User, Lock, Bell, Palette, Smartphone, LogOut, Info, Settings as SettingsIcon, MessageCircle, Phone, PieChart, History, Heart, Pen, AtSign, ChevronLeft } from 'lucide-react';
+import { useAuthStore, useThemeStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [activeTab, setActiveTab] = useState('profile');
+  const [showMobileContent, setShowMobileContent] = useState(false);
   const { user, logout } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
   const router = useRouter();
 
   if (!isOpen) return null;
@@ -39,15 +41,18 @@ export default function SettingsModal({ isOpen, onClose }: { isOpen: boolean, on
             className="flex h-full w-full overflow-hidden bg-[var(--background)] shadow-2xl"
           >
             {/* Sidebar */}
-            <div className="w-[320px] shrink-0 border-r border-[var(--border-light)] bg-[var(--background)] flex flex-col pt-12">
-              <div className="px-6 pb-4">
+            <div className={`shrink-0 border-r border-[var(--border-light)] bg-[var(--background)] flex-col pt-4 md:pt-12 ${!showMobileContent ? 'flex w-full md:w-[320px]' : 'hidden md:flex md:w-[320px]'}`}>
+              <div className="px-6 pb-4 flex items-center justify-between">
                 <h2 className="text-[22px] font-semibold text-[var(--foreground)] tracking-tight">Settings</h2>
+                <button onClick={onClose} className="md:hidden rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors">
+                  <X className="h-6 w-6" />
+                </button>
               </div>
               
               <div className="flex-1 overflow-y-auto px-4 space-y-1 pb-4">
                 {/* Profile Card Button */}
                 <button
-                  onClick={() => setActiveTab('profile')}
+                  onClick={() => { setActiveTab('profile'); setShowMobileContent(true); }}
                   className={`mb-4 flex w-full items-center space-x-4 rounded-2xl p-4 text-left transition-colors ${
                     activeTab === 'profile'
                       ? 'bg-[var(--bg-hover)]'
@@ -66,7 +71,7 @@ export default function SettingsModal({ isOpen, onClose }: { isOpen: boolean, on
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => { setActiveTab(tab.id); setShowMobileContent(true); }}
                     className={`flex w-full items-center space-x-4 rounded-xl px-4 py-2.5 text-[14px] font-medium transition-colors ${
                       activeTab === tab.id
                         ? 'bg-[var(--bg-hover)] text-[var(--foreground)]'
@@ -91,10 +96,16 @@ export default function SettingsModal({ isOpen, onClose }: { isOpen: boolean, on
             </div>
 
             {/* Main Content Area */}
-            <div className="relative flex-1 flex flex-col bg-[var(--background)] pt-12">
+            <div className={`relative flex-1 flex-col bg-[var(--background)] pt-12 ${showMobileContent ? 'flex' : 'hidden md:flex'}`}>
+              <button
+                onClick={() => setShowMobileContent(false)}
+                className="absolute left-4 top-4 md:hidden rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
               <button
                 onClick={onClose}
-                className="absolute right-6 top-6 rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors"
+                className="absolute right-4 md:right-6 top-4 md:top-6 rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors hidden md:block"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -140,6 +151,39 @@ export default function SettingsModal({ isOpen, onClose }: { isOpen: boolean, on
                         <p className="text-[13px] text-[var(--text-muted)] leading-relaxed">
                           People can now message you using your optional username so you don't have to give out your phone number.
                         </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'appearance' ? (
+                <div className="flex h-full flex-col pt-8 px-8">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-10 text-center">Appearance</h3>
+                  
+                  <div className="w-full max-w-lg mx-auto space-y-6">
+                    <div className="flex items-start space-x-4 border-b border-[var(--border-light)] pb-6">
+                      <Palette className="mt-1 h-5 w-5 text-[var(--text-muted)]" />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-[15px] font-medium text-[var(--foreground)]">Theme</p>
+                        </div>
+                        <p className="text-[13px] text-[var(--text-muted)] leading-relaxed mb-4">
+                          Choose how Signal looks to you.
+                        </p>
+                        
+                        <div className="flex bg-[var(--bg-hover)] p-1 rounded-xl">
+                          <button
+                            onClick={() => setTheme('light')}
+                            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${theme === 'light' ? 'bg-[var(--background)] shadow-sm text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
+                          >
+                            Light
+                          </button>
+                          <button
+                            onClick={() => setTheme('dark')}
+                            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${theme === 'dark' ? 'bg-[var(--background)] shadow-sm text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}
+                          >
+                            Dark
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

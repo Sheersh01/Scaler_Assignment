@@ -14,6 +14,20 @@
   --signal-green: #00c853;
 }
 
+:root.dark {
+  --background: #111111;
+  --foreground: #f0f0f0;
+  --bg-sidebar: #1e1e1e;
+  --bg-chatlist: #1a1a1a;
+  --bg-hover: #2a2a2a;
+  --bg-input: #2a2a2a;
+  --bg-message-received: #2a2a2a;
+  --border-light: #333333;
+  --text-muted: #a0a0a0;
+  --signal-blue: #3a7ef6;
+  --signal-green: #00e676;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

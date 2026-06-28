@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuthStore, useSocketStore } from '@/lib/store';
 import api from '@/lib/api';
-import { Send, MoreVertical, Phone, Video, Plus, Check, CheckCheck, UserPlus, Users, Smile, Mic, User } from 'lucide-react';
+import { Send, MoreVertical, Phone, Video, Plus, Check, CheckCheck, UserPlus, Users, Smile, Mic, User, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GroupSettingsModal from './GroupSettingsModal';
 import { useToast } from '@/components/Toast';
+import EmojiPicker from 'emoji-picker-react';
 
 interface ChatWindowProps {
   conversationId: number;
+  setActiveConversation: (id: number | null) => void;
 }
 
-export default function ChatWindow({ conversationId }: ChatWindowProps) {
+export default function ChatWindow({ conversationId, setActiveConversation }: ChatWindowProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [conversation, setConversation] = useState<any>(null);
   const [input, setInput] = useState('');
@@ -21,6 +23,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
   const { ws } = useSocketStore();
   const { showToast } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -100,6 +103,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
     const content = input;
     setInput('');
+    setShowEmojiPicker(false);
 
     try {
       const res = await api.post('/messages/', {
@@ -134,16 +138,27 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
 
 
   const isGroup = conversation?.type === 'GROUP';
-  const title = isGroup ? conversation?.group_info?.name : (conversation?.members.find((m: any) => m.user_id !== user?.id)?.user.display_name || `Chat ${conversationId}`);
-  const memberCount = isGroup ? `${conversation?.members.length} members` : 'Online';
+  const otherMember = conversation?.members.find((m: any) => m.user_id !== user?.id)?.user;
+  const title = isGroup ? conversation?.group_info?.name : (otherMember?.display_name || `Chat ${conversationId}`);
+  const memberCount = isGroup ? `${conversation?.members.length} members` : (otherMember?.is_online ? 'Online' : 'Offline');
+
+  const memoizedEmojiPicker = useMemo(() => {
+    return <EmojiPicker emojiStyle="native" onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />;
+  }, []);
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--background)] relative min-w-0">
       {/* Header */}
       <div 
-         className={`flex items-center justify-between px-4 h-[60px] border-b border-[var(--border-light)] shrink-0 z-10 bg-[var(--background)]/90 backdrop-blur-sm`}
+         className={`flex items-center justify-between px-2 md:px-4 h-[60px] border-b border-[var(--border-light)] shrink-0 z-10 bg-[var(--background)]/90 backdrop-blur-sm`}
       >
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 md:space-x-3">
+          <button 
+             onClick={() => setActiveConversation(null)} 
+             className="md:hidden flex h-9 w-9 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors mr-1"
+          >
+             <ChevronLeft className="h-[24px] w-[24px]" strokeWidth={2} />
+          </button>
           <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isGroup ? 'bg-[#90B3F9]' : 'bg-[#E5BEC3]'} text-white shrink-0`}>
              {isGroup ? <Users className="h-6 w-6" strokeWidth={1.5} /> : <UserPlus className="h-6 w-6" strokeWidth={1.5} />}
           </div>
@@ -170,7 +185,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-[10%] py-6 space-y-4 relative">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-[5%] py-6 space-y-4 relative">
         <AnimatePresence>
           {messages.map((msg, i) => {
             const isMe = msg.sender_id === user?.id;
@@ -194,7 +209,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                   className={`relative max-w-[65%] px-[14px] py-[8px] text-[15px] leading-[1.35] flex flex-col ${
                     isMe
                       ? 'bg-[var(--signal-blue)] text-white rounded-[20px] rounded-br-[4px]'
-                      : 'bg-[#f0f2f5] text-[var(--foreground)] rounded-[20px] rounded-bl-[4px]'
+                      : 'bg-[var(--bg-message-received)] text-[var(--foreground)] rounded-[20px] rounded-bl-[4px]'
                   }`}
                 >
                   {!isMe && isGroup && (
@@ -216,7 +231,7 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
                <div className={`mr-2 h-[32px] w-[32px] shrink-0 rounded-full bg-[var(--border-light)] flex items-center justify-center text-[var(--text-muted)]`}>
                  <User className="h-4 w-4" strokeWidth={2.5} />
                </div>
-               <div className="bg-[#f0f2f5] text-[var(--text-muted)] rounded-[20px] rounded-bl-[4px] px-4 py-2 text-sm flex items-center space-x-1">
+               <div className="bg-[var(--bg-message-received)] text-[var(--text-muted)] rounded-[20px] rounded-bl-[4px] px-4 py-2 text-sm flex items-center space-x-1">
                  <span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span>
                </div>
              </motion.div>
@@ -225,9 +240,22 @@ export default function ChatWindow({ conversationId }: ChatWindowProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-[var(--background)] shrink-0 z-10 flex flex-col items-center justify-center pb-6">
+      <div className="p-4 bg-[var(--background)] shrink-0 z-10 flex flex-col items-center justify-center pb-6 relative">
+        <motion.div 
+          initial={false}
+          animate={{ 
+            opacity: showEmojiPicker ? 1 : 0, 
+            y: showEmojiPicker ? 0 : 10, 
+            scale: showEmojiPicker ? 1 : 0.95,
+            pointerEvents: showEmojiPicker ? 'auto' : 'none'
+          }} 
+          transition={{ duration: 0.2 }}
+          className="absolute bottom-[80px] left-4 md:left-[5%] z-50 shadow-2xl"
+        >
+          {memoizedEmojiPicker}
+        </motion.div>
         <form onSubmit={sendMessage} className="flex items-end w-full max-w-[90%] space-x-2 bg-[var(--bg-input)] rounded-[24px] px-3 py-1.5 shadow-sm border border-transparent focus-within:border-[var(--border-light)] transition-colors">
-          <button type="button" className="flex h-[40px] w-[32px] shrink-0 items-center justify-center text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
+          <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`flex h-[40px] w-[32px] shrink-0 items-center justify-center transition-colors ${showEmojiPicker ? 'text-[var(--signal-blue)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>
             <Smile className="h-[22px] w-[22px]" strokeWidth={2} />
           </button>
           <input

@@ -10,6 +10,14 @@ def get_contacts(db: Session = Depends(database.get_db), current_user: models.Us
     contacts = db.query(models.Contact).filter(models.Contact.owner_id == current_user.id).all()
     return contacts
 
+@router.get("/search", response_model=List[schemas.User])
+def search_users(q: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    users = db.query(models.User).filter(
+        (models.User.username.ilike(f"%{q}%")) | 
+        (models.User.display_name.ilike(f"%{q}%"))
+    ).filter(models.User.id != current_user.id).limit(10).all()
+    return users
+
 @router.post("/", response_model=schemas.Contact)
 def add_contact(contact: schemas.ContactCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     contact_user = db.query(models.User).filter(models.User.username == contact.contact_username).first()

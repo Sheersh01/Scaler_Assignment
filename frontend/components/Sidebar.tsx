@@ -20,6 +20,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
   const [showMenu, setShowMenu] = useState(false);
   const [activeSidebarView, setActiveSidebarView] = useState<'chats' | 'new_chat' | 'phone_search' | 'username_search' | 'choose_members'>('chats');
   const [memberSearch, setMemberSearch] = useState('');
+  const [globalSearchRes, setGlobalSearchRes] = useState<any[]>([]);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -37,6 +38,22 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
     ws.addEventListener('message', handleMessage);
     return () => ws.removeEventListener('message', handleMessage);
   }, [ws]);
+
+  useEffect(() => {
+    if (activeSidebarView === 'username_search' || activeSidebarView === 'choose_members') {
+      if (memberSearch.trim().length > 0) {
+        const timer = setTimeout(async () => {
+          try {
+            const res = await api.get(`/contacts/search?q=${memberSearch}`);
+            setGlobalSearchRes(res.data);
+          } catch(e) {}
+        }, 300);
+        return () => clearTimeout(timer);
+      } else {
+        setGlobalSearchRes([]);
+      }
+    }
+  }, [memberSearch, activeSidebarView]);
 
   const fetchConversations = async () => {
     try {
@@ -126,16 +143,18 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
 
   const filteredMemberContacts = useMemo(() => {
     if (!memberSearch.trim()) return recentContacts;
+    if (globalSearchRes.length > 0) return globalSearchRes;
+    
     const lower = memberSearch.toLowerCase();
     return recentContacts.filter(c => 
       c.display_name.toLowerCase().includes(lower) || 
       c.username.toLowerCase().includes(lower)
     );
-  }, [recentContacts, memberSearch]);
+  }, [recentContacts, memberSearch, globalSearchRes]);
 
   if (activeSidebarView === 'phone_search') {
     return (
-      <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
+      <div className={`${activeConversation ? 'hidden md:flex' : 'flex'} flex-1 min-h-0 md:h-full w-full md:w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0`}>
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
           <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
@@ -162,7 +181,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
 
   if (activeSidebarView === 'choose_members') {
     return (
-      <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
+      <div className={`${activeConversation ? 'hidden md:flex' : 'flex'} flex-1 min-h-0 md:h-full w-full md:w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0`}>
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
           <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
@@ -213,7 +232,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
 
   if (activeSidebarView === 'username_search') {
     return (
-      <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
+      <div className={`${activeConversation ? 'hidden md:flex' : 'flex'} flex-1 min-h-0 md:h-full w-full md:w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0`}>
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
           <button onClick={() => { setActiveSidebarView('new_chat'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
             <ChevronLeft className="h-[22px] w-[22px]" strokeWidth={2} />
@@ -271,7 +290,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
 
   if (activeSidebarView === 'new_chat') {
     return (
-      <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
+      <div className={`${activeConversation ? 'hidden md:flex' : 'flex'} flex-1 min-h-0 md:h-full w-full md:w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0`}>
         {/* Header */}
         <div className="flex items-center space-x-4 px-4 py-4 h-[60px] shrink-0">
           <button onClick={() => { setActiveSidebarView('chats'); setMemberSearch(''); }} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] text-[var(--foreground)] transition-colors">
@@ -335,7 +354,7 @@ export default function Sidebar({ activeConversation, setActiveConversation }: S
   }
 
   return (
-    <div className="flex h-full w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0">
+    <div className={`${activeConversation ? 'hidden md:flex' : 'flex'} flex-1 min-h-0 md:h-full w-full md:w-[340px] flex-col border-r border-[var(--border-light)] bg-[var(--bg-chatlist)] relative z-10 shrink-0`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 h-[60px] shrink-0">
         <h1 className="text-[24px] font-bold text-[var(--foreground)] tracking-tight">Chats</h1>

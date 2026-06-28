@@ -53,3 +53,28 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     set({ ws: null });
   }
 }));
+
+interface ThemeState {
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
+}
+
+export const useThemeStore = create<ThemeState>((set, get) => ({
+  theme: 'light',
+  setTheme: (theme) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    set({ theme });
+  },
+  toggleTheme: () => {
+    const newTheme = get().theme === 'light' ? 'dark' : 'light';
+    get().setTheme(newTheme);
+  }
+}));

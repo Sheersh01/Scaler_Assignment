@@ -48,8 +48,8 @@ export default function Home() {
   if (!mounted || !token || !user) return null;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
-      <GlobalNavigation activeView={activeView} setActiveView={setActiveView} />
+    <div className="flex flex-col-reverse md:flex-row h-screen w-full overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
+      <GlobalNavigation activeView={activeView} setActiveView={setActiveView} hideOnMobile={!!activeConversation} />
       
       {activeView === 'chats' && (
         <>
@@ -58,9 +58,9 @@ export default function Home() {
             setActiveConversation={setActiveConversation} 
           />
           {activeConversation ? (
-            <ChatWindow conversationId={activeConversation} />
+            <ChatWindow conversationId={activeConversation} setActiveConversation={setActiveConversation} />
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center bg-[var(--background)] relative">
+            <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[var(--background)] relative">
               <div className="flex flex-col items-center justify-center text-center">
                 <div className="mb-6 flex h-[110px] w-[110px] items-center justify-center rounded-full border-[2.5px] border-dashed border-[var(--text-muted)] p-2">
                    <svg width="65" height="65" viewBox="0 0 24 24" fill="var(--foreground)" stroke="var(--foreground)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
