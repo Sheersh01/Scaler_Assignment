@@ -43,7 +43,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   ws: null,
   connect: (userId) => {
     if (get().ws) return;
-    const socket = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+    const socket = new WebSocket(`${wsUrl}/ws/${userId}`);
     socket.onopen = () => console.log('Global WS connected');
     set({ ws: socket });
   },
