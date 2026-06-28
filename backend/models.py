@@ -74,6 +74,8 @@ class ConversationMember(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     role = Column(Enum(UserRole), default=UserRole.MEMBER)
     joined_at = Column(DateTime, default=datetime.datetime.utcnow)
+    deleted_at = Column(DateTime, nullable=True)
+    cleared_at = Column(DateTime, nullable=True)
     last_read_message_id = Column(Integer, nullable=True)
 
     conversation = relationship("Conversation", back_populates="members")

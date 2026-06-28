@@ -9,23 +9,35 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 @router.get("/", response_model=List[schemas.Conversation])
 def get_conversations(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Find all conversations the user is a member of
     user_convs = db.query(models.ConversationMember.conversation_id).filter(
-        models.ConversationMember.user_id == current_user.id
+        models.ConversationMember.user_id == current_user.id,
+        models.ConversationMember.deleted_at == None
     ).subquery()
 
     conversations = db.query(models.Conversation).filter(
         models.Conversation.id.in_(user_convs)
     ).order_by(models.Conversation.updated_at.desc()).all()
     
+    valid_convs = []
     for conv in conversations:
+        # Hide newly created empty direct chats from the sidebar
+        if conv.type == models.ConversationType.DIRECT and not conv.messages:
+            continue
+            
+        member = next((m for m in conv.members if m.user_id == current_user.id), None)
+        cleared_at = member.cleared_at if member else None
+        
         unread_count = 0
         for msg in conv.messages:
+            if cleared_at and msg.created_at <= cleared_at:
+                continue
             if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
                 unread_count += 1
         conv.unread_count = unread_count
+        
+        valid_convs.append(conv)
 
-    return conversations
+    return valid_convs
 
 @router.post("/", response_model=schemas.Conversation)
 def create_conversation(conv: schemas.ConversationCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
@@ -99,8 +111,13 @@ def get_conversation(conversation_id: int, db: Session = Depends(database.get_db
     if not is_member:
         raise HTTPException(status_code=403, detail="Not a member of this conversation")
         
+    member = next((m for m in conv.members if m.user_id == current_user.id), None)
+    cleared_at = member.cleared_at if member else None
+
     unread_count = 0
     for msg in conv.messages:
+        if cleared_at and msg.created_at <= cleared_at:
+            continue
         if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
             unread_count += 1
     conv.unread_count = unread_count
@@ -160,5 +177,20 @@ def remove_group_member(conversation_id: int, user_id: int, db: Session = Depend
             raise HTTPException(status_code=400, detail="Cannot remove the last admin. Promote someone else first.")
 
     db.delete(member_to_remove)
+    db.commit()
+    return None
+
+@router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_conversation(conversation_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    member = db.query(models.ConversationMember).filter(
+        models.ConversationMember.conversation_id == conversation_id,
+        models.ConversationMember.user_id == current_user.id
+    ).first()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Conversation not found or not a member")
+        
+    member.deleted_at = datetime.datetime.utcnow()
+    member.cleared_at = datetime.datetime.utcnow()
     db.commit()
     return None

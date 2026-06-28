@@ -18,6 +18,20 @@ def startup_event():
     from database import SessionLocal
     db = SessionLocal()
     try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE conversation_members ADD COLUMN deleted_at DATETIME"))
+    except Exception:
+        pass
+
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE conversation_members ADD COLUMN cleared_at DATETIME"))
+    except Exception:
+        pass
+
+    try:
         user_count = db.query(models.User).count()
         if user_count == 0:
             print("Empty database detected. Running automatic seed...")

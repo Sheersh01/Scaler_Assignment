@@ -20,6 +20,10 @@ def get_messages(conversation_id: int, db: Session = Depends(database.get_db), c
         models.Message.conversation_id == conversation_id
     ).order_by(models.Message.created_at.asc()).all()
     
+    # Filter messages before cleared_at
+    if member.cleared_at:
+        messages = [msg for msg in messages if msg.created_at > member.cleared_at]
+    
     updated = False
     for msg in messages:
         if msg.sender_id != current_user.id and msg.status != models.MessageStatus.READ:
@@ -51,11 +55,14 @@ def send_message(msg: schemas.MessageCreate, db: Session = Depends(database.get_
     )
     db.add(new_msg)
     
-    # Update conversation updated_at
+    # Update conversation updated_at and undelete for all members
     conv = db.query(models.Conversation).filter(models.Conversation.id == msg.conversation_id).first()
     if conv:
         from datetime import datetime
         conv.updated_at = datetime.utcnow()
+        for m in conv.members:
+            if m.deleted_at is not None:
+                m.deleted_at = None
         
     db.commit()
     db.refresh(new_msg)

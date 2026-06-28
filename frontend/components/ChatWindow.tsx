@@ -24,6 +24,7 @@ export default function ChatWindow({ conversationId, setActiveConversation }: Ch
   const { showToast } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -142,9 +143,35 @@ export default function ChatWindow({ conversationId, setActiveConversation }: Ch
   const title = isGroup ? conversation?.group_info?.name : (otherMember?.display_name || `Chat ${conversationId}`);
   const memberCount = isGroup ? `${conversation?.members.length} members` : (otherMember?.is_online ? 'Online' : 'Offline');
 
+  const handleDeleteChat = async () => {
+    if (!confirm("Are you sure you want to permanently delete this chat? This cannot be undone.")) return;
+    try {
+      await api.delete(`/conversations/${conversationId}`);
+      setActiveConversation(null);
+      // Trigger a refresh in the sidebar by broadcasting a fake event
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          event: 'CONVERSATION_CREATED',
+          conversation_id: 0,
+          receiver_ids: [user?.id]
+        }));
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to delete chat");
+    }
+  };
+
   const memoizedEmojiPicker = useMemo(() => {
     return <EmojiPicker emojiStyle={EmojiStyle.NATIVE} onEmojiClick={(emojiData) => setInput(prev => prev + emojiData.emoji)} />;
   }, []);
+
+  if (!conversation) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center bg-[var(--background)] h-full">
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--border-light)] border-t-[var(--signal-blue)]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--background)] relative min-w-0">
@@ -162,9 +189,24 @@ export default function ChatWindow({ conversationId, setActiveConversation }: Ch
           <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isGroup ? 'bg-[#90B3F9]' : 'bg-[#E5BEC3]'} text-white shrink-0`}>
              {isGroup ? <Users className="h-6 w-6" strokeWidth={1.5} /> : <UserPlus className="h-6 w-6" strokeWidth={1.5} />}
           </div>
-          <div>
-            <h2 className="text-[16px] font-bold text-[var(--foreground)] leading-tight">{title}</h2>
+          <div className="cursor-pointer relative" onClick={() => setShowHeaderMenu(!showHeaderMenu)}>
+            <h2 className="text-[16px] font-bold text-[var(--foreground)] leading-tight hover:underline">{title}</h2>
             <p className="text-[12px] text-[var(--text-muted)]">{memberCount}</p>
+            {showHeaderMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowHeaderMenu(false); }} />
+                <div className="absolute left-0 top-full mt-2 z-50 w-48 rounded-xl bg-[var(--bg-chatlist)] border border-[var(--border-light)] shadow-2xl py-2 flex flex-col text-[14px] text-[var(--foreground)] font-medium" onClick={(e) => e.stopPropagation()}>
+                  {isGroup && (
+                    <button onClick={() => { setShowHeaderMenu(false); setIsSettingsOpen(true); }} className="flex items-center space-x-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors text-left w-full">
+                      <span>Group Settings</span>
+                    </button>
+                  )}
+                  <button onClick={() => { setShowHeaderMenu(false); handleDeleteChat(); }} className="flex items-center space-x-3 px-4 py-2.5 hover:bg-[var(--bg-hover)] transition-colors text-left w-full text-red-500">
+                    <span>Delete Chat</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
         <div className="flex space-x-2 text-[var(--text-muted)]">

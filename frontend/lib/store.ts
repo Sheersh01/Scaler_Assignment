@@ -43,14 +43,30 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   ws: null,
   connect: (userId) => {
     if (get().ws) return;
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
-    const socket = new WebSocket(`${wsUrl}/ws/${userId}`);
-    socket.onopen = () => console.log('Global WS connected');
-    set({ ws: socket });
+    const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const wsUrl = url.replace('http', 'ws');
+    
+    const connectWs = () => {
+      const ws = new WebSocket(`${wsUrl}/ws/${userId}`);
+      
+      ws.onopen = () => console.log('Global WS connected');
+      ws.onclose = () => {
+        // Auto-reconnect if the server drops the connection
+        setTimeout(connectWs, 3000);
+      };
+
+      set({ ws });
+    };
+
+    connectWs();
   },
   disconnect: () => {
-    get().ws?.close();
-    set({ ws: null });
+    const { ws } = get();
+    if (ws) {
+      ws.onclose = null; // Prevent auto-reconnect on explicit logout
+      ws.close();
+      set({ ws: null });
+    }
   }
 }));
 
