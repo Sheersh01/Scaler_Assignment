@@ -13,9 +13,15 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Signal Clone API")
 
+import os
+
+# Parse comma-separated CORS_ORIGINS from environment, fallback to localhost
+cors_origins_str = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
